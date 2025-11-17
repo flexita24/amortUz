@@ -1,5 +1,5 @@
 const TelegramBot = require('node-telegram-bot-api');
-
+require('dotenv').config();
 // Environment variabledan token olish
 const BOT_TOKEN = process.env.BOT_TOKEN || '8167038447:AAE3EA27uIk-VjiOs8lWD_YwyDTQAUMSoYc';
 
