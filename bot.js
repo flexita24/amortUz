@@ -2,13 +2,6 @@ const TelegramBot = require('node-telegram-bot-api');
 // Environment variabledan token olish
 const BOT_TOKEN = '8167038447:AAE3EA27uIk-VjiOs8lWD_YwyDTQAUMSoYc';
 
-// // Token tekshirish
-// if (!BOT_TOKEN || BOT_TOKEN === '8167038447:AAE3EA27uIk-VjiOs8lWD_YwyDTQAUMSoYc') {
-//   console.error('❌ BOT_TOKEN topilmadi! Iltimos, Render.com Environment Variables da BOT_TOKEN ni qo\'ying');
-//   process.exit(1);
-// }
-
-// const bot = new TelegramBot(BOT_TOKEN, { polling: true });
 try {
   const bot = new TelegramBot(BOT_TOKEN, {
     polling: {
@@ -19,9 +12,6 @@ try {
   });
 
   console.log('✅ Bot polling rejimida ishga tushdi...');
-
-  // ... SIZNING KODLARINGIZ ...
-
 
   // Foydalanuvchi holatlari
   const userStates = new Map();
@@ -162,14 +152,6 @@ try {
     ['⬅️ Ortga']
   ];
 
-  // Garantiya
-  const warrantyOptions = [
-    ['✅ Garantiya mavjud'],
-    ['⚠️ Garantiya tugagan'],
-    ['❌ Garantiya yo\'q'],
-    ['⬅️ Ortga']
-  ];
-
   // Tashqi ko'rinish
   const exteriorCondition = [
     ['⭐️⭐️⭐️⭐️⭐️ A\'lo - chiziq, dog\' yo\'q'],
@@ -180,7 +162,7 @@ try {
     ['⬅️ Ortga']
   ];
 
-  // Ichki makon holati
+  // Ichki salon holati
   const interiorCondition = [
     ['⭐️⭐️⭐️⭐️⭐️ A\'lo - yangidek'],
     ['⭐️⭐️⭐️⭐️ Yaxshi - oz miqdorda ishlatilgan'],
@@ -293,14 +275,9 @@ try {
         bot.sendMessage(chatId, '🔧 Joriy texnik holatini tanlang:', createKeyboard(conditions));
         break;
 
-      case 'warranty':
+      case 'exterior_condition':
         state.step = 'repair_history';
         bot.sendMessage(chatId, '🛠️ Ta\'mirlash tarixi:', createKeyboard(repairHistory));
-        break;
-
-      case 'exterior_condition':
-        state.step = 'warranty';
-        bot.sendMessage(chatId, '📅 Garantiya holati:', createKeyboard(warrantyOptions));
         break;
 
       case 'interior_condition':
@@ -310,7 +287,7 @@ try {
 
       case 'region_selection':
         state.step = 'interior_condition';
-        bot.sendMessage(chatId, '🛋️ Ichki makon holati:', createKeyboard(interiorCondition));
+        bot.sendMessage(chatId, '🛋️ Ichki salon holati:', createKeyboard(interiorCondition));
         break;
 
       default:
@@ -390,7 +367,7 @@ try {
       `• 🛣️ Probeg\n` +
       `• 🔧 Texnik holati\n` +
       `• 🛠️ Ta'mirlash tarixi\n` +
-      `• 🎨 Tashqi va ichki holat\n` +
+      `• 🎨 Tashqi va ichki salon holati\n` +
       `• 📍 Hudud\n\n` +
       `Botdan foydalanish:\n` +
       `1. "🚗 Yangi avtomobil qo'shish" - avtomobil ma'lumotlarini kiritish\n` +
@@ -588,8 +565,8 @@ try {
 
       if (text === '❌ Hech qanday katta ta\'mirlash yo\'q') {
         state.repairHistory = [text];
-        state.step = 'warranty';
-        bot.sendMessage(chatId, '📅 Garantiya holati:', createKeyboard(warrantyOptions));
+        state.step = 'exterior_condition';
+        bot.sendMessage(chatId, '🎨 Tashqi ko\'rinish holati:', createKeyboard(exteriorCondition));
       } else if (text !== '⬅️ Ortga' && (text.includes('✅') || text.includes('❌'))) {
         if (!state.repairHistory.includes(text)) {
           state.repairHistory.push(text);
@@ -606,23 +583,6 @@ try {
     }
   });
 
-  // Garantiya tanlash
-  bot.on('message', (msg) => {
-    const chatId = msg.chat.id;
-    const text = msg.text;
-    const state = userStates.get(chatId);
-
-    if (state && state.step === 'warranty' && (text.includes('✅') || text.includes('⚠️') || text.includes('❌'))) {
-      state.warranty = text;
-      state.step = 'exterior_condition';
-
-      bot.sendMessage(chatId,
-        '🎨 Tashqi ko\'rinish holati:',
-        createKeyboard(exteriorCondition)
-      );
-    }
-  });
-
   // Tashqi ko'rinish tanlash
   bot.on('message', (msg) => {
     const chatId = msg.chat.id;
@@ -634,13 +594,13 @@ try {
       state.step = 'interior_condition';
 
       bot.sendMessage(chatId,
-        '🛋️ Ichki makon holati:',
+        '🛋️ Ichki salon holati:',
         createKeyboard(interiorCondition)
       );
     }
   });
 
-  // Ichki makon tanlash
+  // Ichki salon tanlash
   bot.on('message', (msg) => {
     const chatId = msg.chat.id;
     const text = msg.text;
@@ -708,16 +668,6 @@ try {
       repairMultiplier = 0.95;
     }
 
-    // Garantiya korreksiyasi
-    let warrantyMultiplier = 1;
-    if (condition.warranty && condition.warranty.includes('✅ Garantiya mavjud')) {
-      warrantyMultiplier = 1.08;
-    } else if (condition.warranty && condition.warranty.includes('⚠️ Garantiya tugagan')) {
-      warrantyMultiplier = 1.0;
-    } else {
-      warrantyMultiplier = 0.95;
-    }
-
     // Tashqi ko'rinish korreksiyasi
     let exteriorMultiplier = 1;
     if (condition.exteriorCondition.includes('⭐️⭐️⭐️⭐️⭐️')) exteriorMultiplier = 1.05;
@@ -726,7 +676,7 @@ try {
     else if (condition.exteriorCondition.includes('⭐️⭐️')) exteriorMultiplier = 0.8;
     else exteriorMultiplier = 0.7;
 
-    // Ichki makon korreksiyasi
+    // Ichki salon korreksiyasi
     let interiorMultiplier = 1;
     if (condition.interiorCondition.includes('⭐️⭐️⭐️⭐️⭐️')) interiorMultiplier = 1.03;
     else if (condition.interiorCondition.includes('⭐️⭐️⭐️⭐️')) interiorMultiplier = 1.0;
@@ -743,7 +693,7 @@ try {
 
     // Yakuniy narx
     price = price - yearDepreciation - mileageDepreciation;
-    price = price * conditionMultiplier * repairMultiplier * warrantyMultiplier * exteriorMultiplier * interiorMultiplier * regionMultiplier;
+    price = price * conditionMultiplier * repairMultiplier * exteriorMultiplier * interiorMultiplier * regionMultiplier;
 
     // Minimal narx
     price = Math.max(price, car.originalPrice * 0.1); // Kamida 10% qolsin
@@ -763,6 +713,8 @@ try {
       `• 🛣️ Probeg: ${condition.currentMileage.toLocaleString()} km\n` +
       `• 🔧 Texnik holat: ${condition.technicalCondition.split(' ')[0]}\n` +
       `• 🛠️ Ta'mirlash: ${condition.repairHistory ? condition.repairHistory.join(', ') : 'Yo\'q'}\n` +
+      `• 🎨 Tashqi holat: ${condition.exteriorCondition.split(' ')[0]}\n` +
+      `• 🛋️ Ichki salon: ${condition.interiorCondition.split(' ')[0]}\n` +
       `• 📍 Hudud: ${condition.region}\n\n` +
       `💡 TAKLIF:\n` +
       `Sotish narxi: ${(Math.round(price * 0.95) / 1000000).toFixed(1)} - ${(Math.round(price * 1.05) / 1000000).toFixed(1)} mln so'm`;
