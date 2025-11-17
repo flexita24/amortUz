@@ -1,7 +1,15 @@
 const TelegramBot = require('node-telegram-bot-api');
 
-// Bot token - o'zingiz qo'ying
-const bot = new TelegramBot('8167038447:AAE3EA27uIk-VjiOs8lWD_YwyDTQAUMSoYc', { polling: true });
+// Environment variabledan token olish
+const BOT_TOKEN = process.env.BOT_TOKEN || '8167038447:AAE3EA27uIk-VjiOs8lWD_YwyDTQAUMSoYc';
+
+// Token tekshirish
+if (!BOT_TOKEN || BOT_TOKEN === '8167038447:AAE3EA27uIk-VjiOs8lWD_YwyDTQAUMSoYc') {
+  console.error('❌ BOT_TOKEN topilmadi! Iltimos, Render.com Environment Variables da BOT_TOKEN ni qo\'ying');
+  process.exit(1);
+}
+
+const bot = new TelegramBot(BOT_TOKEN, { polling: true });
 
 // Foydalanuvchi holatlari
 const userStates = new Map();
@@ -124,11 +132,49 @@ const colors = [
 
 // Texnik holat
 const conditions = [
-  ['⭐⭐⭐⭐⭐ A\'lo (90-100%)'],
-  ['⭐⭐⭐⭐ Yaxshi (75-89%)'],
-  ['⭐⭐⭐ O\'rtacha (60-74%)'],
-  ['⭐⭐ Qoniqarli (40-59%)'],
-  ['⭐ Yomon (0-39%)'],
+  ['⭐️⭐️⭐️⭐️⭐️ A\'lo (90-100%)'],
+  ['⭐️⭐️⭐️⭐️ Yaxshi (75-89%)'],
+  ['⭐️⭐️⭐️ O\'rtacha (60-74%)'],
+  ['⭐️⭐️ Qoniqarli (40-59%)'],
+  ['⭐️ Yomon (0-39%)'],
+  ['⬅️ Ortga']
+];
+
+// Ta'mirlash tarixi
+const repairHistory = [
+  ['✅ Katta ta\'mirlash o\'tkazilgan'],
+  ['✅ Dvigatel ta\'mirlangan'],
+  ['✅ Transmissiya almashtirilgan'],
+  ['✅ Yoqilg\'i tizimi ta\'mirlangan'],
+  ['❌ Hech qanday katta ta\'mirlash yo\'q'],
+  ['⬅️ Ortga']
+];
+
+// Garantiya
+const warrantyOptions = [
+  ['✅ Garantiya mavjud'],
+  ['⚠️ Garantiya tugagan'],
+  ['❌ Garantiya yo\'q'],
+  ['⬅️ Ortga']
+];
+
+// Tashqi ko'rinish
+const exteriorCondition = [
+  ['⭐️⭐️⭐️⭐️⭐️ A\'lo - chiziq, dog\' yo\'q'],
+  ['⭐️⭐️⭐️⭐️ Yaxshi - mayda chiziqlar'],
+  ['⭐️⭐️⭐️ O\'rtacha - bir necha chiziq'],
+  ['⭐️⭐️ Qoniqarli - ko\'p mayda shikastlar'],
+  ['⭐️ Yomon - katta shikastlar'],
+  ['⬅️ Ortga']
+];
+
+// Ichki makon holati
+const interiorCondition = [
+  ['⭐️⭐️⭐️⭐️⭐️ A\'lo - yangidek'],
+  ['⭐️⭐️⭐️⭐️ Yaxshi - oz miqdorda ishlatilgan'],
+  ['⭐️⭐️⭐️ O\'rtacha - normal ishlatilgan'],
+  ['⭐️⭐️ Qoniqarli - eskirgan'],
+  ['⭐️ Yomon - kuchsiz holat'],
   ['⬅️ Ortga']
 ];
 
@@ -170,7 +216,7 @@ function createKeyboard(options) {
 // Model keyboard yasash
 function createModelKeyboard(brand) {
   const modelButtons = models[brand].map(model => 
-    [`${model.name} - ${model.price ? (model.price / 1000000) + ' mlrd' : '⬅️ Ortga'}`]
+    [`${model.name} - ${model.price ? (model.price / 1000000) + ' mln' : '⬅️ Ortga'}`]
   );
   return createKeyboard(modelButtons);
 }
@@ -230,9 +276,29 @@ function goBack(chatId, currentState) {
       bot.sendMessage(chatId, `🛣️ Joriy probegni kiriting (km):\nOldingi: ${state.selectedCar.initialMileage} km`, createKeyboard([['⬅️ Ortga']]));
       break;
     
-    case 'region_selection':
+    case 'repair_history':
       state.step = 'technical_condition';
       bot.sendMessage(chatId, '🔧 Joriy texnik holatini tanlang:', createKeyboard(conditions));
+      break;
+    
+    case 'warranty':
+      state.step = 'repair_history';
+      bot.sendMessage(chatId, '🛠️ Ta\'mirlash tarixi:', createKeyboard(repairHistory));
+      break;
+    
+    case 'exterior_condition':
+      state.step = 'warranty';
+      bot.sendMessage(chatId, '📅 Garantiya holati:', createKeyboard(warrantyOptions));
+      break;
+    
+    case 'interior_condition':
+      state.step = 'exterior_condition';
+      bot.sendMessage(chatId, '🎨 Tashqi ko\'rinish holati:', createKeyboard(exteriorCondition));
+      break;
+    
+    case 'region_selection':
+      state.step = 'interior_condition';
+      bot.sendMessage(chatId, '🛋️ Ichki makon holati:', createKeyboard(interiorCondition));
       break;
     
     default:
@@ -295,7 +361,7 @@ bot.onText(/📊 Mening avtomobillarim/, (msg) => {
   let carList = '🚗 Mening avtomobillarim:\n\n';
   cars.forEach((car, index) => {
     carList += `${index + 1}. ${car.brand} ${car.model} (${car.year})\n`;
-    carList += `   💰 Yangi narx: ${car.originalPrice.toLocaleString()} so'm\n`;
+    carList += `   💰 Yangi narx: ${(car.originalPrice / 1000000).toFixed(1)} mln so'm\n`;
     carList += `   🛣️ Boshlang'ich probeg: ${car.initialMileage} km\n\n`;
   });
   
@@ -311,6 +377,8 @@ bot.onText(/ℹ️ Yordam/, (msg) => {
     `• 📅 Yoshi va amortizatsiya\n` +
     `• 🛣️ Probeg\n` +
     `• 🔧 Texnik holati\n` +
+    `• 🛠️ Ta'mirlash tarixi\n` +
+    `• 🎨 Tashqi va ichki holat\n` +
     `• 📍 Hudud\n\n` +
     `Botdan foydalanish:\n` +
     `1. "🚗 Yangi avtomobil qo'shish" - avtomobil ma'lumotlarini kiritish\n` +
@@ -366,7 +434,7 @@ bot.on('message', (msg) => {
     
     bot.sendMessage(chatId, 
       `✅ ${selectedModel.name} tanlandi\n` +
-      `💰 Yangi narxi: ${selectedModel.price.toLocaleString()} so'm\n\n` +
+      `💰 Yangi narxi: ${(selectedModel.price / 1000000).toFixed(1)} mln so'm\n\n` +
       `📅 Ishlab chiqarilgan yilini kiriting (masalan: 2020):`,
       createKeyboard([['⬅️ Ortga']])
     );
@@ -414,7 +482,7 @@ bot.on('message', (msg) => {
   }
   
   // Texnik holat tanlash
-  else if (state.step === 'initial_condition' && text.includes('⭐')) {
+  else if (state.step === 'initial_condition' && text.includes('⭐️')) {
     state.data.initialCondition = text;
     
     // Saqlash
@@ -428,7 +496,7 @@ bot.on('message', (msg) => {
       `🏷️ ${state.data.brand} ${state.data.model}\n` +
       `📅 ${state.data.year} yil\n` +
       `🎨 ${state.data.color}\n` +
-      `💰 Yangi narx: ${state.data.originalPrice.toLocaleString()} so'm\n` +
+      `💰 Yangi narx: ${(state.data.originalPrice / 1000000).toFixed(1)} mln so'm\n` +
       `🛣️ Boshlang'ich probeg: ${state.data.initialMileage} km`,
       mainMenu
     );
@@ -474,7 +542,7 @@ bot.on('message', (msg) => {
     state.step = 'technical_condition';
     
     bot.sendMessage(chatId,
-      '🔧 Joriy texnik holatini tanlang:',
+      '🔧 Texnik holatini tanlang:',
       createKeyboard(conditions)
     );
   }
@@ -486,8 +554,88 @@ bot.on('message', (msg) => {
   const text = msg.text;
   const state = userStates.get(chatId);
   
-  if (state && state.step === 'technical_condition' && text.includes('⭐')) {
+  if (state && state.step === 'technical_condition' && text.includes('⭐️')) {
     state.technicalCondition = text;
+    state.step = 'repair_history';
+    
+    bot.sendMessage(chatId,
+      '🛠️ Ta\'mirlash tarixi:',
+      createKeyboard(repairHistory)
+    );
+  }
+});
+
+// Ta'mirlash tarixi tanlash
+bot.on('message', (msg) => {
+  const chatId = msg.chat.id;
+  const text = msg.text;
+  const state = userStates.get(chatId);
+  
+  if (state && state.step === 'repair_history') {
+    if (!state.repairHistory) state.repairHistory = [];
+    
+    if (text === '❌ Hech qanday katta ta\'mirlash yo\'q') {
+      state.repairHistory = [text];
+      state.step = 'warranty';
+      bot.sendMessage(chatId, '📅 Garantiya holati:', createKeyboard(warrantyOptions));
+    } else if (text !== '⬅️ Ortga' && (text.includes('✅') || text.includes('❌'))) {
+      if (!state.repairHistory.includes(text)) {
+        state.repairHistory.push(text);
+      }
+      // Bir nechta tanlash uchun shu yerda qoladi
+      bot.sendMessage(chatId, 
+        `✅ Tanlanganlar: ${state.repairHistory.join(', ')}\n\n` +
+        `Yana ta\'mirlash qo\'shasizmi yoki "⬅️ Ortga" ni bosing?`,
+        createKeyboard([...repairHistory])
+      );
+    } else if (text === '⬅️ Ortga') {
+      goBack(chatId, 'repair_history');
+    }
+  }
+});
+
+// Garantiya tanlash
+bot.on('message', (msg) => {
+  const chatId = msg.chat.id;
+  const text = msg.text;
+  const state = userStates.get(chatId);
+  
+  if (state && state.step === 'warranty' && (text.includes('✅') || text.includes('⚠️') || text.includes('❌'))) {
+    state.warranty = text;
+    state.step = 'exterior_condition';
+    
+    bot.sendMessage(chatId,
+      '🎨 Tashqi ko\'rinish holati:',
+      createKeyboard(exteriorCondition)
+    );
+  }
+});
+
+// Tashqi ko'rinish tanlash
+bot.on('message', (msg) => {
+  const chatId = msg.chat.id;
+  const text = msg.text;
+  const state = userStates.get(chatId);
+  
+  if (state && state.step === 'exterior_condition' && text.includes('⭐️')) {
+    state.exteriorCondition = text;
+    state.step = 'interior_condition';
+    
+    bot.sendMessage(chatId,
+      '🛋️ Ichki makon holati:',
+      createKeyboard(interiorCondition)
+    );
+  }
+});
+
+// Ichki makon tanlash
+bot.on('message', (msg) => {
+  const chatId = msg.chat.id;
+  const text = msg.text;
+  const state = userStates.get(chatId);
+  
+  if (state && state.step === 'interior_condition' && text.includes('⭐️')) {
+    state.interiorCondition = text;
     state.step = 'region_selection';
     
     bot.sendMessage(chatId,
@@ -534,11 +682,45 @@ function calculateValuation(car, condition) {
   
   // Texnik holat korreksiyasi
   let conditionMultiplier = 1;
-  if (condition.technicalCondition.includes('⭐⭐⭐⭐⭐')) conditionMultiplier = 0.95;
-  else if (condition.technicalCondition.includes('⭐⭐⭐⭐')) conditionMultiplier = 0.82;
-  else if (condition.technicalCondition.includes('⭐⭐⭐')) conditionMultiplier = 0.65;
-  else if (condition.technicalCondition.includes('⭐⭐')) conditionMultiplier = 0.45;
+  if (condition.technicalCondition.includes('⭐️⭐️⭐️⭐️⭐️')) conditionMultiplier = 0.95;
+  else if (condition.technicalCondition.includes('⭐️⭐️⭐️⭐️')) conditionMultiplier = 0.82;
+  else if (condition.technicalCondition.includes('⭐️⭐️⭐️')) conditionMultiplier = 0.65;
+  else if (condition.technicalCondition.includes('⭐️⭐️')) conditionMultiplier = 0.45;
   else conditionMultiplier = 0.25;
+  
+  // Ta'mirlash tarixi korreksiyasi
+  let repairMultiplier = 1;
+  if (condition.repairHistory && condition.repairHistory.includes('❌ Hech qanday katta ta\'mirlash yo\'q')) {
+    repairMultiplier = 1.05;
+  } else if (condition.repairHistory && condition.repairHistory.some(r => r.includes('✅'))) {
+    repairMultiplier = 0.95;
+  }
+  
+  // Garantiya korreksiyasi
+  let warrantyMultiplier = 1;
+  if (condition.warranty && condition.warranty.includes('✅ Garantiya mavjud')) {
+    warrantyMultiplier = 1.08;
+  } else if (condition.warranty && condition.warranty.includes('⚠️ Garantiya tugagan')) {
+    warrantyMultiplier = 1.0;
+  } else {
+    warrantyMultiplier = 0.95;
+  }
+  
+  // Tashqi ko'rinish korreksiyasi
+  let exteriorMultiplier = 1;
+  if (condition.exteriorCondition.includes('⭐️⭐️⭐️⭐️⭐️')) exteriorMultiplier = 1.05;
+  else if (condition.exteriorCondition.includes('⭐️⭐️⭐️⭐️')) exteriorMultiplier = 1.0;
+  else if (condition.exteriorCondition.includes('⭐️⭐️⭐️')) exteriorMultiplier = 0.9;
+  else if (condition.exteriorCondition.includes('⭐️⭐️')) exteriorMultiplier = 0.8;
+  else exteriorMultiplier = 0.7;
+  
+  // Ichki makon korreksiyasi
+  let interiorMultiplier = 1;
+  if (condition.interiorCondition.includes('⭐️⭐️⭐️⭐️⭐️')) interiorMultiplier = 1.03;
+  else if (condition.interiorCondition.includes('⭐️⭐️⭐️⭐️')) interiorMultiplier = 1.0;
+  else if (condition.interiorCondition.includes('⭐️⭐️⭐️')) interiorMultiplier = 0.9;
+  else if (condition.interiorCondition.includes('⭐️⭐️')) interiorMultiplier = 0.8;
+  else interiorMultiplier = 0.7;
   
   // Hudud korreksiyasi
   let regionMultiplier = 1;
@@ -549,28 +731,30 @@ function calculateValuation(car, condition) {
   
   // Yakuniy narx
   price = price - yearDepreciation - mileageDepreciation;
-  price = price * conditionMultiplier * regionMultiplier;
+  price = price * conditionMultiplier * repairMultiplier * warrantyMultiplier * exteriorMultiplier * interiorMultiplier * regionMultiplier;
   
   // Minimal narx
   price = Math.max(price, car.originalPrice * 0.1); // Kamida 10% qolsin
   
   const depreciationAmount = car.originalPrice - price;
   const depreciationPercent = ((depreciationAmount / car.originalPrice) * 100).toFixed(1);
-  const annualDepreciation = (depreciationPercent / Math.max(carAge, 1)).toFixed(1);
+  const annualDepreciation = carAge > 0 ? (depreciationPercent / carAge).toFixed(1) : '0';
   
   return `📊 BAHOLASH NATIJASI\n\n` +
          `🚗 ${car.brand} ${car.model} (${car.year})\n` +
-         `💰 Yangi narx: ${car.originalPrice.toLocaleString()} so'm\n` +
-         `💵 Joriy baho: ${Math.round(price).toLocaleString()} so'm\n` +
-         `📉 Pasayish: ${Math.round(depreciationAmount).toLocaleString()} so'm (${depreciationPercent}%)\n` +
+         `💰 Yangi narx: ${(car.originalPrice / 1000000).toFixed(1)} mln so'm\n` +
+         `💵 Joriy baho: ${(Math.round(price) / 1000000).toFixed(1)} mln so'm\n` +
+         `📉 Pasayish: ${(Math.round(depreciationAmount) / 1000000).toFixed(1)} mln so'm (${depreciationPercent}%)\n` +
          `🗓️ Yillik amortizatsiya: ${annualDepreciation}%\n\n` +
          `📈 TAHLILLAR:\n` +
          `• 📅 Yoshi: ${carAge} yil\n` +
          `• 🛣️ Probeg: ${condition.currentMileage.toLocaleString()} km\n` +
-         `• 📍 Hudud: ${condition.region}\n` +
-         `• 🔧 Holat: ${condition.technicalCondition.split(' ')[0]}\n\n` +
+         `• 🔧 Texnik holat: ${condition.technicalCondition.split(' ')[0]}\n` +
+         `• 🛠️ Ta'mirlash: ${condition.repairHistory ? condition.repairHistory.join(', ') : 'Yo\'q'}\n` +
+         `• 📍 Hudud: ${condition.region}\n\n` +
          `💡 TAKLIF:\n` +
-         `Sotish narxi: ${Math.round(price * 0.95).toLocaleString()} - ${Math.round(price * 1.05).toLocaleString()} so'm`;
+         `Sotish narxi: ${(Math.round(price * 0.95) / 1000000).toFixed(1)} - ${(Math.round(price * 1.05) / 1000000).toFixed(1)} mln so'm`;
 }
 
-console.log('Bot ishga tushdi...');
+console.log('✅ Bot token muvaffaqiyatli yuklandi');
+console.log('🤖 Bot ishga tushdi...');
