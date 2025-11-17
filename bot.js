@@ -1,13 +1,12 @@
 const TelegramBot = require('node-telegram-bot-api');
-require('dotenv').config();
 // Environment variabledan token olish
-const BOT_TOKEN = process.env.BOT_TOKEN || '8167038447:AAE3EA27uIk-VjiOs8lWD_YwyDTQAUMSoYc';
+const BOT_TOKEN = '8167038447:AAE3EA27uIk-VjiOs8lWD_YwyDTQAUMSoYc';
 
-// Token tekshirish
-if (!BOT_TOKEN || BOT_TOKEN === '8167038447:AAE3EA27uIk-VjiOs8lWD_YwyDTQAUMSoYc') {
-  console.error('❌ BOT_TOKEN topilmadi! Iltimos, Render.com Environment Variables da BOT_TOKEN ni qo\'ying');
-  process.exit(1);
-}
+// // Token tekshirish
+// if (!BOT_TOKEN || BOT_TOKEN === '8167038447:AAE3EA27uIk-VjiOs8lWD_YwyDTQAUMSoYc') {
+//   console.error('❌ BOT_TOKEN topilmadi! Iltimos, Render.com Environment Variables da BOT_TOKEN ni qo\'ying');
+//   process.exit(1);
+// }
 
 const bot = new TelegramBot(BOT_TOKEN, { polling: true });
 
